@@ -1,6 +1,6 @@
 all: build
 
-ENVVAR = GOOS=linux GOARCH=amd64
+ENVVAR = GOOS=linux
 TAG = v0.1.0
 GODEP_BIN = $$GOPATH/bin/godep
 APP_NAME = kube-iptables-tailer
