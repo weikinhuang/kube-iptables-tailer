@@ -33,6 +33,8 @@ func initMetricsSingleton() {
 		[]string{
 			"src",
 			"dst",
+			"proto",
+			"port",
 		},
 	)
 
@@ -50,9 +52,11 @@ func (m *Metrics) GetHandler() http.Handler {
 }
 
 // Update the metrics by given service name
-func (m *Metrics) ProcessPacketDrop(src, dst string) {
+func (m *Metrics) ProcessPacketDrop(src, dst string, protocol string, port string) {
 	m.packetDropsCount.With(prometheus.Labels{
 		"src": src,
 		"dst": dst,
+		"proto": protocol,
+		"port": port,
 	}).Inc()
 }

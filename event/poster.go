@@ -100,19 +100,22 @@ func (poster *Poster) handle(packetDrop drop.PacketDrop) error {
 	// update metrics and post events
 	srcName := getNamespaceOrHostName(srcPod, packetDrop.SrcIP, net.DefaultResolver)
 	dstName := getNamespaceOrHostName(dstPod, packetDrop.DstIP, net.DefaultResolver)
+	port := "0"
 	if srcPod != nil && !srcPod.Spec.HostNetwork {
 		message := getPacketDropMessage(dstName, packetDrop.Protocol, packetDrop.DstIP, packetDrop.DstPort, send)
 		if err := poster.submitEvent(srcPod, message); err != nil {
 			return err
 		}
+		port = packetDrop.DstPort
 	}
 	if dstPod != nil && !dstPod.Spec.HostNetwork {
 		message := getPacketDropMessage(srcName, packetDrop.Protocol, packetDrop.SrcIP, packetDrop.SrcPort, receive)
 		if err := poster.submitEvent(dstPod, message); err != nil {
 			return err
 		}
+		port = packetDrop.SrcPort
 	}
-	metrics.GetInstance().ProcessPacketDrop(srcName, dstName)
+	metrics.GetInstance().ProcessPacketDrop(srcName, dstName, packetDrop.Protocol, port)
 	// update poster's eventSubmitTimeMap
 	poster.eventSubmitTimeMap[packetDrop.SrcIP+packetDrop.DstIP] = time.Now()
 	return nil
