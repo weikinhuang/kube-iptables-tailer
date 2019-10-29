@@ -1,0 +1,46 @@
+stages:
+  - build
+  - deploy
+
+before_script:
+  # start: fix gitlab-ci's umask 0000 issue
+  - umask 0022
+  - find . ! -path . ! -path './.git' ! -path './.git/*' -exec chmod go-w {} +
+  # end: fix gitlab-ci's umask 0000 issue
+
+deploy-image:
+  stage: deploy
+  image: $CI_REGISTRY/buildtools/oci-build:latest
+  script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+    - "export APP_VERSION=$(cat VERSION)"
+    - "export APP_VERSION_MINOR=$(echo $APP_VERSION | cut -d'.' -f 1-2)"
+    - "export APP_VERSION_MAJOR=$(echo $APP_VERSION | cut -d'.' -f 1)"
+    - |
+      build \
+        --latest fork \
+        --file Dockerfile-cgo \
+        --name $CI_REGISTRY_IMAGE \
+        --tag "${CI_COMMIT_REF_NAME},${CI_COMMIT_SHA},${CI_COMMIT_SHA}-${CI_JOB_ID},${APP_VERSION},${APP_VERSION_MINOR},${APP_VERSION_MAJOR}" \
+        --platform "linux/arm64/v8,linux/amd64"
+  only:
+    - fork
+
+deploy-image-dockerhub:
+  stage: deploy
+  image: $CI_REGISTRY/buildtools/oci-build:latest
+  script:
+    - '[[ -z "${HUB_REGISTRY_IMAGE}" ]] && false'
+    - docker login -u "${HUB_REGISTRY_USERNAME}" -p "${HUB_REGISTRY_PASSWORD}"
+    - "export APP_VERSION=$(cat VERSION)"
+    - "export APP_VERSION_MINOR=$(echo $APP_VERSION | cut -d'.' -f 1-2)"
+    - "export APP_VERSION_MAJOR=$(echo $APP_VERSION | cut -d'.' -f 1)"
+    - |
+      build \
+        --latest fork \
+        --file Dockerfile-cgo \
+        --name $HUB_REGISTRY_IMAGE \
+        --tag "${CI_COMMIT_REF_NAME},${CI_COMMIT_SHA},${APP_VERSION},${APP_VERSION_MINOR},${APP_VERSION_MAJOR}" \
+        --platform "linux/arm64/v8,linux/amd64"
+  only:
+    - fork
